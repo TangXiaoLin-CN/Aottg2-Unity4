@@ -4,6 +4,7 @@ using Weather;
 using UI;
 using Utility;
 using CustomSkins;
+using CustomLogic;
 using ApplicationManagers;
 using System.Diagnostics;
 using Settings;
@@ -89,7 +90,9 @@ namespace GameManagers
                 Lines.RemoveAt(0);
             if (IsChatAvailable())
             {
-                GetChatPanel().AddLine(line);
+                var panel = GetChatPanel();
+                if (panel != null)
+                    panel.AddLine(line);
             }
         }
 
@@ -137,6 +140,7 @@ namespace GameManagers
                 string name = PhotonNetwork.player.GetStringProperty(PlayerProperty.Name);
                 SendChatAll(name + ": " + input);
             }
+            CustomLogicManager.Evaluator.OnChatInput(input);
         }
 
         private static void HandleCommand(string[] args)

@@ -10,6 +10,7 @@ using Effects;
 using UI;
 using Settings;
 using System.Collections;
+using CustomLogic;
 
 namespace Characters
 {
@@ -24,6 +25,8 @@ namespace Characters
         public override float CrippleTime => 3.5f;
         protected bool _needRoar = true;
         public bool TransformingToHuman;
+        public float PreviousHumanGas;
+        public BaseUseable PreviousHumanWeapon;
 
         protected override void Start()
         {
@@ -74,6 +77,8 @@ namespace Characters
             StartCoroutine(WaitAndDie());
             yield return new WaitForSeconds(2f);
             _inGameManager.SpawnPlayerAt(false, BaseTitanCache.Neck.position);
+            Human currentCharacter = ((Human)(_inGameManager.CurrentCharacter));
+            currentCharacter.StartCoroutine(currentCharacter.WaitAndTransformFromShifter(PreviousHumanGas, PreviousHumanWeapon));
         }
 
         protected override void Awake()
@@ -117,31 +122,37 @@ namespace Characters
                 base.GetHitRPC(viewId, name, damage, type, collider);
         }
 
-        public override void OnHit(BaseHitbox hitbox, BaseCharacter victim, Collider collider, string type, bool firstHit)
+        public override void OnHit(BaseHitbox hitbox, object victim, Collider collider, string type, bool firstHit)
         {
             int damage = 100;
             if (CustomDamageEnabled)
                 damage = CustomDamage;
-            if (victim is BaseTitan)
+            if (victim is CustomLogicCollisionHandler)
+            {
+                ((CustomLogicCollisionHandler)victim).GetHit(this, Name, damage, type);
+                return;
+            }
+            var victimChar = (BaseCharacter)victim;
+            if (victimChar is BaseTitan)
             {
                 if (firstHit)
                 {
                     EffectSpawner.Spawn(EffectPrefabs.PunchHit, hitbox.transform.position, Quaternion.identity);
-                    if (!victim.Dead)
+                    if (!victimChar.Dead)
                     {
                         if (IsMainCharacter())
                             ((InGameMenu)UIManager.CurrentMenu).ShowKillScore(damage);
-                        victim.GetHit(this, damage, "Stun", collider.name);
+                        victimChar.GetHit(this, damage, "Stun", collider.name);
                     }
                 }
             }
             else
             {
-                if (!victim.Dead)
+                if (!victimChar.Dead)
                 {
                     if (IsMainCharacter())
                         ((InGameMenu)UIManager.CurrentMenu).ShowKillScore(damage);
-                    victim.GetHit(this, damage, type, collider.name);
+                    victimChar.GetHit(this, damage, type, collider.name);
                 }
             }
         }
